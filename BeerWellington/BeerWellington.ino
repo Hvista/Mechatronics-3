@@ -1,7 +1,7 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <HTTPClient.h>
-#include <SPI.h>
+#include <SPI.h> //asd
 #include <MFRC522.h>
 
 // Function Pins //
