@@ -71,7 +71,6 @@ void callback(char *byteArraytopic, byte *byteArrayPayload, unsigned int length)
     Serial.println(payload);  // Prints the payload
     relayControl();           // Calls the function for the relay control
   }
-
   if (topic == "s204719@student.dtu.dk/beerSlider") {  // This topic reveives the input from the UI slider
     payload = "";
     for (int i = 0; i < length; i++) {
@@ -79,6 +78,22 @@ void callback(char *byteArraytopic, byte *byteArrayPayload, unsigned int length)
     }
     Serial.println(payload);  // Prints the payload
     relaySlider();            // Calls the relay slider function
+  }
+  if (topic == "s204719@student.dtu.dk/kegSize") {  // This topic receives the input from the UI buttons
+    payload = "";
+    for (int i = 0; i < length; i++) {
+      payload += (char)byteArrayPayload[i];
+    }
+    Serial.println(payload);  // Prints the payload
+    totalKeg = payload.toInt();
+  }
+  if (topic == "s204719@student.dtu.dk/glassSize") {  // This topic receives the input from the UI buttons
+    payload = "";
+    for (int i = 0; i < length; i++) {
+      payload += (char)byteArrayPayload[i];
+    }
+    Serial.println(payload);  // Prints the payload
+    totalKeg = payload.toInt();
   }
 }
 // MQTT Connection //
@@ -164,7 +179,7 @@ void relayControl() {
 // Relay Slider //
 void relaySlider() {
   // The function controls what percentage of the duration for a whole beer tap that the relay should be turned on based on the slider input value
-  int sliderVal = (payload.toInt() * (rateOfFlow / 10)) * 1000;  // Converts the recieved payload into an integer and converts it to the duration of which the
+  int sliderVal = (payload.toInt() * (fullGlassTime / 10)) * 1000;  // Converts the recieved payload into an integer and converts it to the duration of which the
   digitalWrite(relay, LOW);                                      // Relay turns on
   delay(sliderVal);                                              // Relay is on for the duration received from the payload
   digitalWrite(relay, HIGH);                                     // Relay is turned off
