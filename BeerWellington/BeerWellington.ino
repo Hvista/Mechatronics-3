@@ -93,7 +93,7 @@ void callback(char *byteArraytopic, byte *byteArrayPayload, unsigned int length)
       payload += (char)byteArrayPayload[i];
     }
     Serial.println(payload);  // Prints the payload
-    totalKeg = payload.toInt();
+    fullGlass = payload.toInt();
   }
 }
 // MQTT Connection //
