@@ -1,8 +1,6 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <HTTPClient.h>
-#include <SPI.h> 
-#include <MFRC522.h>
 
 // Function Pins //
 #define relay 14  // Relay pin
@@ -16,8 +14,11 @@ float calibrationFactor = 4.5;
 volatile byte pulseCount;
 byte pulse1Sec = 0;
 int rateOfFlow;  // Flow rate chosen from the user interview
-unsigned int flowMili;
-unsigned long totalMili;
+unsigned int flowMilli;
+unsigned long totalMilli;
+int fullGlass;
+int fullGlassTime;
+int totalKeg;
 
 // WiFi Variables //
 const char *ssid = "Stampe";  // Wifi name
@@ -62,15 +63,6 @@ void callback(char *byteArraytopic, byte *byteArrayPayload, unsigned int length)
   Serial.println("] ");
   // Konverterer den indkomne besked (payload) fra en array til en string:
 
-  if (topic == "s204719@student.dtu.dk/flowRate") {  // This topic receives the flow rate from the user input
-    payload = "";                                    // Resets the payload
-    for (int i = 0; i < length; i++) {
-      payload += (char)byteArrayPayload[i];
-    }
-    Serial.println(payload);       // Prints the payload
-    rateOfFlow = payload.toInt();  // the recieved flow rate is converter
-  }
-
   if (topic == "s204719@student.dtu.dk/beerwell") {  // This topic receives the input from the UI buttons
     payload = "";
     for (int i = 0; i < length; i++) {
@@ -100,7 +92,6 @@ void reconnect() {
       // MQTT Subscriptions //
       client.subscribe("s204719@student.dtu.dk/beerwell");
       client.subscribe("s204719@student.dtu.dk/beerSlider");
-      client.subscribe("s204719@student.dtu.dk/flowRate");
     } else { // Hvis forbindelsen fejler køres loopet igen efter 5 sekunder indtil forbindelse er oprettet
       Serial.print("failed, rc=");
       Serial.print(client.state());
@@ -120,24 +111,22 @@ void setup() {
   pinMode(sensor, INPUT_PULLUP); // Sets the sensor as output
 
   Serial.begin(115200);                      // Baud rate
-  SPI.begin();
-  rfid.PCD_Init();
   setup_wifi();                              // Setup wifi function
   client.setServer(mqtt_server, mqtt_port);  // Connects to MQTT broker
   client.setCallback(callback);              // Ingangsætter den definerede callback funktion hver gang der er en ny besked på den subscribede "cmd"- topic
 
   pulseCount = 0;
-  flowRate = 0.0;
-  flowMilliLitres = 0;
-  totalMilliLitres = 0;
-  previousMillis = 0;
+  rateOfFlow = 0.0;
+  flowMilli = 0;
+  totalMilli = 0;
+  previousTime = 0;
 
-  attachInterrupt(digitalPinToInterrupt(SENSOR), pulseCounter, FALLING);
+  attachInterrupt(digitalPinToInterrupt(sensor), pulseCounter, FALLING);
 }
 // Flow Sensor Control //
 void flowSensor() {
-  curretntTime = millis();
-  if (currentTime - previousTime > interval) {
+  currentTime = millis();
+  if (currentTime - previousTime > flowInterval) {
     pulse1Sec = pulseCount;
     pulseCount = 0;
 
@@ -145,6 +134,8 @@ void flowSensor() {
     previousTime = currentTime;
 
     flowMilli = (rateOfFlow / 60) * 1000;
+
+    fullGlassTime = fullGlass / flowMilli;
 
     totalMilli += flowMilli;
   }
@@ -154,19 +145,18 @@ void relayControl() {
   // The function controls what percentage of the duration for a whole beer tap that the relay should be turned on
   if (payload == "smagsprøve") {  // 10% of the whole duration
     digitalWrite(relay, LOW);
-    delay((rateOfFlow * 0.1) * 1000);
+    delay((fullGlassTime * 0.1) * 1000);
     digitalWrite(relay, HIGH);
     
   } else if (payload == "halv") {  //50% of the whole duration
     digitalWrite(relay, LOW);
-    delay((rateOfFlow * 0.5) * 1000);
+    delay((fullGlassTime * 0.5) * 1000);
     digitalWrite(relay, HIGH);
    
   } else if (payload == "hel") {  // 100% of the whole duration
     digitalWrite(relay, LOW);
-    delay(rateOfFlow * 1000);
+    delay(fullGlassTime);
     digitalWrite(relay, HIGH);
-    
   } else {  // In the standard state, the relay is turned off
     digitalWrite(relay, HIGH);
   }
@@ -185,4 +175,6 @@ void loop() {
     reconnect();
   }
   client.loop();
+
+  flowSensor();
 }
