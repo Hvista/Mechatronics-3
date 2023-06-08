@@ -15,9 +15,9 @@ float calibrationFactor = 4.5;
 volatile byte pulseCount;
 byte pulse1Sec = 0;
 int rateOfFlow;  // Flow rate chosen from the user interview
-unsigned int flowMilli;
+unsigned int flowMilli = 1;
 unsigned long totalMilli;
-int fullGlass;
+int fullGlass = 1;
 int fullGlassTime;
 int totalKeg;
 
@@ -151,7 +151,7 @@ void flowSensor() {
 
     flowMilli = (rateOfFlow / 60) * 1000;
 
-    //fullGlassTime = fullGlass / flowMilli;
+    fullGlassTime = fullGlass / flowMilli;
 
     totalMilli += flowMilli;
   }
