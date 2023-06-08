@@ -5,18 +5,19 @@
 #include <MFRC522.h>
 
 // Function Pins //
-#define relay 14  // Relay pin number
-#define SS_PIN 5
-#define RST_PIN 27
-
-MFRC522 rfid(SS_PIN, RST_PIN);
+#define relay 14  // Relay pin
+#define sensor 27 // Flow Sensor pin
 
 // Function Variables //
-int rateOfFlow;  // Flow rate chosen from the user interview
-byte authorizedUID[4] = {0xF3, 0x15, 0xA4, 0x14}; // Authorized ID 
-unsigned long previousTime;
 unsigned long currentTime;
-
+unsigned long previousTime;
+int flowInterval = 1000;
+float calibrationFactor = 4.5;
+volatile byte pulseCount;
+byte pulse1Sec = 0;
+int rateOfFlow;  // Flow rate chosen from the user interview
+unsigned int flowMili;
+unsigned long totalMili;
 
 // WiFi Variables //
 const char *ssid = "Stampe";  // Wifi name
@@ -108,10 +109,15 @@ void reconnect() {
     }
   }
 }
+// Function that make the interruption possible //
+void IRAM_ATTR pulseCounter() {
+  pulseCount++;
+}
 // Setup //
 void setup() {
   pinMode(relay, OUTPUT);     // Sets the relay as output
   digitalWrite(relay, HIGH);  // The relay starts in "ON" mode, so we send a HIGH to turn it of in the beginning
+  pinMode(sensor, INPUT_PULLUP); // Sets the sensor as output
 
   Serial.begin(115200);                      // Baud rate
   SPI.begin();
@@ -119,6 +125,29 @@ void setup() {
   setup_wifi();                              // Setup wifi function
   client.setServer(mqtt_server, mqtt_port);  // Connects to MQTT broker
   client.setCallback(callback);              // Ingangsætter den definerede callback funktion hver gang der er en ny besked på den subscribede "cmd"- topic
+
+  pulseCount = 0;
+  flowRate = 0.0;
+  flowMilliLitres = 0;
+  totalMilliLitres = 0;
+  previousMillis = 0;
+
+  attachInterrupt(digitalPinToInterrupt(SENSOR), pulseCounter, FALLING);
+}
+// Flow Sensor Control //
+void flowSensor() {
+  curretntTime = millis();
+  if (currentTime - previousTime > interval) {
+    pulse1Sec = pulseCount;
+    pulseCount = 0;
+
+    rateOfFlow = ((1000.0 / (millis() - previousTime)) * pulse1Sec) / calibrationFactor;
+    previousTime = currentTime;
+
+    flowMilli = (rateOfFlow / 60) * 1000;
+
+    totalMilli += flowMilli;
+  }
 }
 // Relay Control //
 void relayControl() {
