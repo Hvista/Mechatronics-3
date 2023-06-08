@@ -1,6 +1,7 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <HTTPClient.h>
+#include <SPI.h> 
 
 // Function Pins //
 #define relay 14  // Relay pin
@@ -21,8 +22,8 @@ int fullGlassTime;
 int totalKeg;
 
 // WiFi Variables //
-const char *ssid = "Stampe";  // Wifi name
-const char *password = "whit3field";  // Wifi pass
+const char *ssid = "WiFimodem-272D";  // Wifi name
+const char *password = "qtzqgzqwtz";  // Wifi pass
 
 // MQTT Broker Variables //
 const char *mqtt_server = "maqiatto.com";          // MQTT server name
@@ -150,7 +151,7 @@ void flowSensor() {
 
     flowMilli = (rateOfFlow / 60) * 1000;
 
-    fullGlassTime = fullGlass / flowMilli;
+    //fullGlassTime = fullGlass / flowMilli;
 
     totalMilli += flowMilli;
   }
