@@ -16,8 +16,7 @@ int rateOfFlow;  // Flow rate chosen from the user interview
 byte authorizedUID[4] = {0xF3, 0x15, 0xA4, 0x14}; // Authorized ID 
 unsigned long previousTime;
 unsigned long currentTime;
-unsigned long idleLimit = 30000;
-bool isIdle;
+
 
 // WiFi Variables //
 const char *ssid = "Stampe";  // Wifi name
@@ -70,8 +69,8 @@ void callback(char *byteArraytopic, byte *byteArrayPayload, unsigned int length)
     Serial.println(payload);       // Prints the payload
     rateOfFlow = payload.toInt();  // the recieved flow rate is converter
   }
+
   if (topic == "s204719@student.dtu.dk/beerwell") {  // This topic receives the input from the UI buttons
-    previousTime = currentTime;
     payload = "";
     for (int i = 0; i < length; i++) {
       payload += (char)byteArrayPayload[i];
@@ -79,23 +78,14 @@ void callback(char *byteArraytopic, byte *byteArrayPayload, unsigned int length)
     Serial.println(payload);  // Prints the payload
     relayControl();           // Calls the function for the relay control
   }
+
   if (topic == "s204719@student.dtu.dk/beerSlider") {  // This topic reveives the input from the UI slider
-    previousTime = currentTime;
     payload = "";
     for (int i = 0; i < length; i++) {
       payload += (char)byteArrayPayload[i];
     }
     Serial.println(payload);  // Prints the payload
     relaySlider();            // Calls the relay slider function
-  }
-  if (topic == "s204719@student.dtu.dk/calibrate") {  // This topic reveives the input from the UI slider
-    previousTime = currentTime;
-    payload = "";
-    for (int i = 0; i < length; i++) {
-      payload += (char)byteArrayPayload[i];
-    }
-    Serial.println(payload);  // Prints the payload
-    calibration();            // Calls the calibration function
   }
 }
 // MQTT Connection //
@@ -110,9 +100,6 @@ void reconnect() {
       client.subscribe("s204719@student.dtu.dk/beerwell");
       client.subscribe("s204719@student.dtu.dk/beerSlider");
       client.subscribe("s204719@student.dtu.dk/flowRate");
-      client.subscribe("s204719@student.dtu.dk/id");
-      client.subscribe("s204719@student.dtu.dk/idleState");
-      client.subscribe("s204719@student.dtu.dk/calibrate");
     } else { // Hvis forbindelsen fejler køres loopet igen efter 5 sekunder indtil forbindelse er oprettet
       Serial.print("failed, rc=");
       Serial.print(client.state());
@@ -132,37 +119,6 @@ void setup() {
   setup_wifi();                              // Setup wifi function
   client.setServer(mqtt_server, mqtt_port);  // Connects to MQTT broker
   client.setCallback(callback);              // Ingangsætter den definerede callback funktion hver gang der er en ny besked på den subscribede "cmd"- topic
-}
-// ID/Payment function //
-void identify() {
-  if (rfid.PICC_IsNewCardPresent()) { // new tag is available
-    if (rfid.PICC_ReadCardSerial()) { // NUID has been readed
-      MFRC522::PICC_Type piccType = rfid.PICC_GetType(rfid.uid.sak);
-
-      if (rfid.uid.uidByte[0] == authorizedUID[0] &&
-          rfid.uid.uidByte[1] == authorizedUID[1] &&
-          rfid.uid.uidByte[2] == authorizedUID[2] &&
-          rfid.uid.uidByte[3] == authorizedUID[3] ) {
-        Serial.println("Authorized Tag");
-        client.publish("s204719@student.dtu.dk/id", "verified");
-        isIdle = true;
-        previousTime = currentTime;
-      }
-      else
-      {
-        Serial.print("Unauthorized Tag with UID:");
-        for (int i = 0; i < rfid.uid.size; i++) {
-          Serial.print(rfid.uid.uidByte[i] < 0x10 ? " 0" : " ");
-          Serial.print(rfid.uid.uidByte[i], HEX);
-        }
-        Serial.println();
-        client.publish("s204719@student.dtu.dk/id", "unverified");
-        previousTime = currentTime;
-      }
-      rfid.PICC_HaltA(); // halt PICC
-      rfid.PCD_StopCrypto1(); // stop encryption on PCD
-    }
-  }
 }
 // Relay Control //
 void relayControl() {
@@ -194,31 +150,10 @@ void relaySlider() {
   delay(sliderVal);                                              // Relay is on for the duration received from the payload
   digitalWrite(relay, HIGH);                                     // Relay is turned off
 }
-// Idle State Checker //
-void idleChecker() {
-  currentTime = millis();
-  if (currentTime - previousTime >= idleLimit){
-    previousTime = currentTime;
-    client.publish("s204719@student.dtu.dk/session", "expired");
-    Serial.println("expired");
-  }
-}
-void calibration(){
-  digitalWrite(relay, LOW);
-  currentTime = millis();
-  
-}
 // Main Loop //
 void loop() {
   if (!client.connected()) {
     reconnect();
   }
   client.loop();
-
-  identify();
-  if (isIdle == true) {
-    idleChecker();
-  } else {
-    return;
-  }
 }
