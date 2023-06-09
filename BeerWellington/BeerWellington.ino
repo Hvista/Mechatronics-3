@@ -22,8 +22,8 @@ int fullGlassTime;
 int totalKeg;
 
 // WiFi Variables //
-const char *ssid = "WiFimodem-272D";  // Wifi name
-const char *password = "qtzqgzqwtz";  // Wifi pass
+const char *ssid = "Stampe";  // Wifi name
+const char *password = "whit3field";  // Wifi pass
 
 // MQTT Broker Variables //
 const char *mqtt_server = "maqiatto.com";          // MQTT server name
