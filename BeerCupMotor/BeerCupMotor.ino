@@ -1,13 +1,19 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <HTTPClient.h>
+<<<<<<< Updated upstream
 // #include <Servo.h>
 #include <Stepper.h>
 #include <NewPing.h>
+=======
+#include <ESP32Servo.h>
+// #include <NewPing.h>
+>>>>>>> Stashed changes
 
 // Function Pins //
 #define relay 14  // Relay pin
 #define sensor 27 // Flow Sensor pin
+<<<<<<< Updated upstream
 #define triggerPin 9
 #define echoPin 10
 // servo.attach(8);
@@ -15,6 +21,10 @@
 // Stepper setup
 const int stepsPerRevolution = 2038;
 Stepper myStepper = Stepper(stepsPerRevolution, 8, 10, 9, 11);
+=======
+//#define triggerPin 16
+//#define echoPin 10
+>>>>>>> Stashed changes
 
 
 // Function Variables //
@@ -37,7 +47,7 @@ bool status;
 unsigned int maxDistance = 40;
 unsigned int distance;
 
-NewPing sonar(triggerPin, echoPin, maxDistance); // NewPing setup of pins and maximum distance.
+// NewPing sonar(triggerPin, echoPin, maxDistance); // NewPing setup of pins and maximum distance.
 
 // WiFi Variables //
 const char *ssid = "Stampe";  // Wifi name
@@ -157,10 +167,14 @@ void setup() {
 
   attachInterrupt(digitalPinToInterrupt(sensor), pulseCounter, FALLING);
 
+<<<<<<< Updated upstream
+=======
+  servo.attach(13);
+>>>>>>> Stashed changes
   servo.write(angle);
 }
 
-void cupCheck(){
+/*void cupCheck(){
   distance = sonar.ping_cm();
   Serial.print(distance);
 
@@ -169,9 +183,10 @@ void cupCheck(){
   } else {
     status = false;
   }
-}
+}*/
 
 // servoMotor //
+<<<<<<< Updated upstream
 // void servoMotorStart(){
 //   while(angle <= maxAngle; angle++){
 //     servo.write(angle);
@@ -197,12 +212,27 @@ void stepMotorStart(){
 void stepMotorStart(){
   myStepper.setSpeed(5);
 	myStepper.step(-stepsPerRevolution);
+=======
+void servoMotorStart(){
+  while(angle <= maxAngle){
+    angle++;
+    servo.write(angle);
+    delay(20); // Speed of motor
+  }
+}
+
+void servoMotorEnd(){
+  while(angle >= maxAngle){
+    angle--;
+    servo.write(angle);
+    delay(80); // Speed of motor
+  }
+>>>>>>> Stashed changes
 }
 
 
 // Flow Sensor Control //
 void flowSensor() {
-  cupCheck();
 
   currentTime = millis();
   if (currentTime - previousTime > flowInterval) {
@@ -222,10 +252,20 @@ void flowSensor() {
 }
 // Relay Control //
 void relayControl() {
+<<<<<<< Updated upstream
 cupCheck();
 
   if(status == true){
     servoMotorStart();
+=======
+
+  if(status == true){
+    // The function controls what percentage of the duration for a whole beer tap that the relay should be turned on
+  if (payload == "smagsprøve") {  // 10% of the whole duration
+    digitalWrite(relay, LOW);
+    delay((fullGlassTime * 0.1) * 1000);
+    digitalWrite(relay, HIGH);
+>>>>>>> Stashed changes
     
     // The function controls what percentage of the duration for a whole beer tap that the relay should be turned on
     if (payload == "smagsprøve") {  // 10% of the whole duration
@@ -252,6 +292,14 @@ cupCheck();
     Serial.print("No cup inserted, indicate user somehow.")
   }
 
+<<<<<<< Updated upstream
+=======
+    servoMotorEnd();
+  } else {
+    Serial.print("No cup inserted, indicate user somehow.");
+  }
+  
+>>>>>>> Stashed changes
 }
 // Relay Slider //
 void relaySlider() {
