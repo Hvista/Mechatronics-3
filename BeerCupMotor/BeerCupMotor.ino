@@ -1,7 +1,8 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <HTTPClient.h>
-#include <Servo.h>
+// #include <Servo.h>
+#include <Stepper.h>
 #include <NewPing.h>
 
 // Function Pins //
@@ -9,6 +10,11 @@
 #define sensor 27 // Flow Sensor pin
 #define triggerPin 9
 #define echoPin 10
+// servo.attach(8);
+
+// Stepper setup
+const int stepsPerRevolution = 2038;
+Stepper myStepper = Stepper(stepsPerRevolution, 8, 10, 9, 11);
 
 
 // Function Variables //
@@ -151,7 +157,6 @@ void setup() {
 
   attachInterrupt(digitalPinToInterrupt(sensor), pulseCounter, FALLING);
 
-  servo.attach(8);
   servo.write(angle);
 }
 
@@ -167,20 +172,31 @@ void cupCheck(){
 }
 
 // servoMotor //
-void servoMotorStart(){
-  while(angle <= maxAngle; angle++){
-    servo.write(angle);
-    delay(20); // Speed of motor
-  }
+// void servoMotorStart(){
+//   while(angle <= maxAngle; angle++){
+//     servo.write(angle);
+//     delay(20); // Speed of motor
+//   }
 
+// }
+
+// void servoMotorEnd(){
+//   while(angle >= maxAngle; angle--){
+//     servo.write(angle);
+//     delay(80); // Speed of motor
+//   }
+
+// }
+
+// Step motor replacement of Servo
+void stepMotorStart(){
+  myStepper.setSpeed(19);
+	myStepper.step(stepsPerRevolution);
 }
 
-void servoMotorEnd(){
-  while(angle >= maxAngle; angle--){
-    servo.write(angle);
-    delay(80); // Speed of motor
-  }
-
+void stepMotorStart(){
+  myStepper.setSpeed(5);
+	myStepper.step(-stepsPerRevolution);
 }
 
 
@@ -188,50 +204,54 @@ void servoMotorEnd(){
 void flowSensor() {
   cupCheck();
 
-  if(status == true){
-    servoMotorStart();
+  currentTime = millis();
+  if (currentTime - previousTime > flowInterval) {
+    pulse1Sec = pulseCount;
+    pulseCount = 0;
 
-    currentTime = millis();
-    if (currentTime - previousTime > flowInterval) {
-      pulse1Sec = pulseCount;
-      pulseCount = 0;
+    rateOfFlow = ((1000.0 / (millis() - previousTime)) * pulse1Sec) / calibrationFactor;
+    previousTime = currentTime;
 
-      rateOfFlow = ((1000.0 / (millis() - previousTime)) * pulse1Sec) / calibrationFactor;
-      previousTime = currentTime;
+    flowMilli = (rateOfFlow / 60) * 1000;
 
-      flowMilli = (rateOfFlow / 60) * 1000;
+    fullGlassTime = fullGlass / flowMilli;
 
-      fullGlassTime = fullGlass / flowMilli;
-
-      totalMilli += flowMilli;
-    }
-
-    servoMotorEnd();
-  } else {
-    Serial.print("No cup inserted, indicate user somehow.")
+    totalMilli += flowMilli;
   }
   
 }
 // Relay Control //
 void relayControl() {
-  // The function controls what percentage of the duration for a whole beer tap that the relay should be turned on
-  if (payload == "smagsprøve") {  // 10% of the whole duration
-    digitalWrite(relay, LOW);
-    delay((fullGlassTime * 0.1) * 1000);
-    digitalWrite(relay, HIGH);
+cupCheck();
+
+  if(status == true){
+    servoMotorStart();
     
-  } else if (payload == "halv") {  //50% of the whole duration
-    digitalWrite(relay, LOW);
-    delay((fullGlassTime * 0.5) * 1000);
-    digitalWrite(relay, HIGH);
-   
-  } else if (payload == "hel") {  // 100% of the whole duration
-    digitalWrite(relay, LOW);
-    delay(fullGlassTime);
-    digitalWrite(relay, HIGH);
-  } else {  // In the standard state, the relay is turned off
-    digitalWrite(relay, HIGH);
+    // The function controls what percentage of the duration for a whole beer tap that the relay should be turned on
+    if (payload == "smagsprøve") {  // 10% of the whole duration
+      digitalWrite(relay, LOW);
+      delay((fullGlassTime * 0.1) * 1000);
+      digitalWrite(relay, HIGH);
+      
+    } else if (payload == "halv") {  //50% of the whole duration
+      digitalWrite(relay, LOW);
+      delay((fullGlassTime * 0.5) * 1000);
+      digitalWrite(relay, HIGH);
+    
+    } else if (payload == "hel") {  // 100% of the whole duration
+      digitalWrite(relay, LOW);
+      delay(fullGlassTime);
+      digitalWrite(relay, HIGH);
+    } else {  // In the standard state, the relay is turned off
+      digitalWrite(relay, HIGH);
+    }
+
+    servoMotorEnd();
+    
+  } else {
+    Serial.print("No cup inserted, indicate user somehow.")
   }
+
 }
 // Relay Slider //
 void relaySlider() {
@@ -243,10 +263,10 @@ void relaySlider() {
 }
 // Main Loop //
 void loop() {
-  if (!client.connected()) {
-    reconnect();
-  }
-  client.loop();
+  // if (!client.connected()) {
+  //   reconnect();
+  // }
+  // client.loop();
 
-  flowSensor();
+  // flowSensor();
 }
