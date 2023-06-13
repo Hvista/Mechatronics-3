@@ -176,7 +176,7 @@ void relayControl() {
    
   } else if (payload == "hel") {  // 100% of the whole duration
     digitalWrite(relay, LOW);
-    delay(fullGlassTime);
+    delay(fullGlassTime*1000);
     digitalWrite(relay, HIGH);
   } else {  // In the standard state, the relay is turned off
     digitalWrite(relay, HIGH);
