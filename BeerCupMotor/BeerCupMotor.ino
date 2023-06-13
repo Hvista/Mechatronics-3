@@ -177,7 +177,6 @@ void setup() {
 }*/
 
 // servoMotor //
-<<<<<<< Updated upstream
 // void servoMotorStart(){
 //   while(angle <= maxAngle; angle++){
 //     servo.write(angle);

@@ -156,9 +156,10 @@ void flowSensor() {
 
     totalMilli += flowMilli;
   }
-  if (flowMilli < flowThreshold) {
+  if (totalMilli < flowThreshold) {
     digitalWrite(relay, HIGH);
     client.publish("s204719@student.dtu.dk/threshold", "empty");
+    totalMilli = 0;
   }
 }
 // Relay Control //
