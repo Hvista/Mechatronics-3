@@ -20,6 +20,7 @@ unsigned long totalMilli;
 int fullGlass = 1;
 int fullGlassTime;
 int totalKeg;
+const int flowThreshold = 50;
 
 // WiFi Variables //
 const char *ssid = "Stampe";  // Wifi name
@@ -154,6 +155,10 @@ void flowSensor() {
     fullGlassTime = fullGlass / flowMilli;
 
     totalMilli += flowMilli;
+  }
+  if (flowMilli < flowThreshold) {
+    digitalWrite(relay, HIGH);
+    client.publish("s204719@student.dtu.dk/threshold", "empty");
   }
 }
 // Relay Control //

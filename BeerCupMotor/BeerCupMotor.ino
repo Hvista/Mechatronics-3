@@ -19,7 +19,7 @@
 // servo.attach(8);
 
 // Stepper setup
-const int stepsPerRevolution = 2038;
+const int stepsPerRevolution = 2048;
 Stepper myStepper = Stepper(stepsPerRevolution, 8, 10, 9, 11);
 =======
 //#define triggerPin 16
