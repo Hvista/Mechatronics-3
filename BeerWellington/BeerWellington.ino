@@ -167,18 +167,22 @@ void relayControl() {
   // The function controls what percentage of the duration for a whole beer tap that the relay should be turned on
   if (payload == "smagsprøve") {  // 10% of the whole duration
     digitalWrite(relay, LOW);
-    delay((fullGlassTime * 0.1) * 1000);
+    delay((fullGlassTime) * 1000);
     digitalWrite(relay, HIGH);
     
   } else if (payload == "halv") {  //50% of the whole duration
+    for (int i = 0; i < 3; i++) {
     digitalWrite(relay, LOW);
-    delay((fullGlassTime * 0.5) * 1000);
+    delay((fullGlassTime) * 1000);
     digitalWrite(relay, HIGH);
+    }
    
   } else if (payload == "hel") {  // 100% of the whole duration
+    for (int i = 0; i < 5; i++) {
     digitalWrite(relay, LOW);
-    delay(fullGlassTime*1000);
+    delay((fullGlassTime) * 1000);
     digitalWrite(relay, HIGH);
+    }
   } else {  // In the standard state, the relay is turned off
     digitalWrite(relay, HIGH);
   }
@@ -186,10 +190,12 @@ void relayControl() {
 // Relay Slider //
 void relaySlider() {
   // The function controls what percentage of the duration for a whole beer tap that the relay should be turned on based on the slider input value
-  int sliderVal = (payload.toInt() * (fullGlassTime / 10)) * 1000;  // Converts the recieved payload into an integer and converts it to the duration of which the
-  digitalWrite(relay, LOW);                                      // Relay turns on
-  delay(sliderVal);                                              // Relay is on for the duration received from the payload
-  digitalWrite(relay, HIGH);                                     // Relay is turned off
+  int sliderVal = payload.toInt() // Converts the recieved payload into an integer and converts it to the duration of which the
+  for (int i = 0; i < sliderVal; i++) {
+    digitalWrite(relay, LOW);                                      // Relay turns on
+    delay(sliderVal);                                              // Relay is on for the duration received from the payload
+    digitalWrite(relay, HIGH);                                     // Relay is turned off
+  }
 }
 // Main Loop //
 void loop() {
