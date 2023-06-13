@@ -1,19 +1,15 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <HTTPClient.h>
-<<<<<<< Updated upstream
 // #include <Servo.h>
 #include <Stepper.h>
 #include <NewPing.h>
-=======
 #include <ESP32Servo.h>
 // #include <NewPing.h>
->>>>>>> Stashed changes
 
 // Function Pins //
 #define relay 14  // Relay pin
 #define sensor 27 // Flow Sensor pin
-<<<<<<< Updated upstream
 #define triggerPin 9
 #define echoPin 10
 // servo.attach(8);
@@ -21,10 +17,8 @@
 // Stepper setup
 const int stepsPerRevolution = 2048;
 Stepper myStepper = Stepper(stepsPerRevolution, 8, 10, 9, 11);
-=======
 //#define triggerPin 16
 //#define echoPin 10
->>>>>>> Stashed changes
 
 
 // Function Variables //
