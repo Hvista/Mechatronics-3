@@ -161,10 +161,7 @@ void setup() {
 
   attachInterrupt(digitalPinToInterrupt(sensor), pulseCounter, FALLING);
 
-<<<<<<< Updated upstream
-=======
   servo.attach(13);
->>>>>>> Stashed changes
   servo.write(angle);
 }
 
@@ -206,7 +203,6 @@ void stepMotorStart(){
 void stepMotorStart(){
   myStepper.setSpeed(5);
 	myStepper.step(-stepsPerRevolution);
-=======
 void servoMotorStart(){
   while(angle <= maxAngle){
     angle++;
@@ -246,12 +242,10 @@ void flowSensor() {
 }
 // Relay Control //
 void relayControl() {
-<<<<<<< Updated upstream
 cupCheck();
 
   if(status == true){
     servoMotorStart();
-=======
 
   if(status == true){
     // The function controls what percentage of the duration for a whole beer tap that the relay should be turned on
@@ -259,7 +253,6 @@ cupCheck();
     digitalWrite(relay, LOW);
     delay((fullGlassTime * 0.1) * 1000);
     digitalWrite(relay, HIGH);
->>>>>>> Stashed changes
     
     // The function controls what percentage of the duration for a whole beer tap that the relay should be turned on
     if (payload == "smagsprøve") {  // 10% of the whole duration
@@ -286,14 +279,11 @@ cupCheck();
     Serial.print("No cup inserted, indicate user somehow.")
   }
 
-<<<<<<< Updated upstream
-=======
     servoMotorEnd();
   } else {
     Serial.print("No cup inserted, indicate user somehow.");
   }
   
->>>>>>> Stashed changes
 }
 // Relay Slider //
 void relaySlider() {
