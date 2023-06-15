@@ -190,7 +190,7 @@ void relayControl() {
 // Relay Slider //
 void relaySlider() {
   // The function controls what percentage of the duration for a whole beer tap that the relay should be turned on based on the slider input value
-  int sliderVal = payload.toInt() // Converts the recieved payload into an integer and converts it to the duration of which the
+  int sliderVal = payload.toInt(); // Converts the recieved payload into an integer and converts it to the duration of which the
   for (int i = 0; i < sliderVal; i++) {
     digitalWrite(relay, LOW);                                      // Relay turns on
     delay(sliderVal);                                              // Relay is on for the duration received from the payload
