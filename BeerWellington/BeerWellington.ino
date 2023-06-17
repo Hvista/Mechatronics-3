@@ -165,23 +165,23 @@ void setup() {
   Wire.begin(21, 22);
 }
 // Flow Sensor Control //
-void flowSensor() {
-  currentTime = millis();
-  if (currentTime - previousTime > flowInterval) {
-    pulse1Sec = pulseCount;
-    pulseCount = 0;
+// void flowSensor() {
+//   currentTime = millis();
+//   if (currentTime - previousTime > flowInterval) {
+//     pulse1Sec = pulseCount;
+//     pulseCount = 0;
 
-    rateOfFlow = ((1000.0 / (millis() - previousTime)) * pulse1Sec) / calibrationFactor;
-    previousTime = currentTime;
+//     rateOfFlow = ((1000.0 / (millis() - previousTime)) * pulse1Sec) / calibrationFactor;
+//     previousTime = currentTime;
 
 
-    flowMilli = (rateOfFlow / 60) * 1000;
+//     flowMilli = (rateOfFlow / 60) * 1000;
 
-    fullGlassTime = fullGlass / flowMilli;
+//     fullGlassTime = fullGlass / flowMilli;
 
-    totalMilli += flowMilli;
-  }
-}
+//     totalMilli += flowMilli;
+//   }
+// }
 // Relay Control //
 void relayControl() {
   // The function controls what percentage of the duration for a whole beer tap that the relay should be turned on
@@ -208,38 +208,6 @@ void relayControl() {
     digitalWrite(relay, HIGH);
     }
 }
-// Relay Control //
-// void relayControl() {
-//   // The function controls what percentage of the duration for a whole beer tap that the relay should be turned on
-//   if (and1 = 1) {
-//     if (payload == "smagsprøve") {  // 10% of the whole duration
-//       digitalWrite(relay, LOW);
-//       delay((fullGlassTime)*1000);
-//       digitalWrite(relay, HIGH);
-//       and1 = 0;
-//       Serial.print("den lille");
-//     } else if (payload == "halv") {  //50% of the whole duration
-//       for (int i = 0; i < 3; i++) {
-//         digitalWrite(relay, LOW);
-//         delay((fullGlassTime)*1000);
-//         digitalWrite(relay, HIGH);
-//         and1 = 0;
-//         Serial.print("den halve");
-//       }
-//     } else if (payload == "hel") {  // 100% of the whole duration
-//       for (int i = 0; i < 5; i++) {
-//         digitalWrite(relay, LOW);
-//         delay((fullGlassTime)*1000);
-//         digitalWrite(relay, HIGH);
-//         and1 = 0;
-//         Serial.print("den hele");
-//       }
-//     } else {  // In the standard state, the relay is turned off
-//       digitalWrite(relay, HIGH);
-//       and1 = 0;
-//     }
-//   }
-// }
 // Relay Slider //
 void relaySlider() {
   // The function controls what percentage of the duration for a whole beer tap that the relay should be turned on based on the slider input value
@@ -274,7 +242,7 @@ void loop() {
   }
   client.loop();
 
-  flowSensor();
+  // flowSensor();
 
   if (and1 == 1 && slideGate == 1) {
     relaySlider();  // Calls the relay slider function
