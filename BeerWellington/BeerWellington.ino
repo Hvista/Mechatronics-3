@@ -165,39 +165,90 @@ void setup() {
 
   Wire.begin(21, 22);
 }
-// Flow Sensor Control //
-// void flowSensor() {
-//   currentTime = millis();
-//   if (currentTime - previousTime > flowInterval) {
-//     pulse1Sec = pulseCount;
-//     pulseCount = 0;
+// Flow sensor control //
+void flowSensor() {
+  currentMillis = millis();
+  if (currentMillis - previousMillis > interval) {
+    
+    pulse1Sec = pulseCount;
+    pulseCount = 0;
 
-//     rateOfFlow = ((1000.0 / (millis() - previousTime)) * pulse1Sec) / calibrationFactor;
-//     previousTime = currentTime;
+    // Because this loop may not complete in exactly 1 second intervals we calculate
+    // the number of milliseconds that have passed since the last execution and use
+    // that to scale the output. We also apply the calibrationFactor to scale the output
+    // based on the number of pulses per second per units of measure (litres/minute in
+    // this case) coming from the sensor.
+    flowRate = ((1000.0 / (millis() - previousMillis)) * pulse1Sec) / calibrationFactor;
+    previousMillis = millis();
 
+    // Divide the flow rate in litres/minute by 60 to determine how many litres have
+    // passed through the sensor in this 1 second interval, then multiply by 1000 to
+    // convert to millilitres.
+    flowMilliLitres = (flowRate / 60) * 1000;
 
-//     flowMilli = (rateOfFlow / 60) * 1000;
+    // Add the millilitres passed in this second to the cumulative total
+    totalMilliLitres += flowMilliLitres;
+    
+    // Print the flow rate for this second in litres / minute
+    Serial.print("Flow rate: ");
+    Serial.print(int(flowRate));  // Print the integer part of the variable
+    Serial.print("L/min");
+    Serial.print("\t");       // Print tab space
 
-//     fullGlassTime = fullGlass / flowMilli;
+    // Print the cumulative total of litres flowed since starting
+    Serial.print("Output Liquid Quantity: ");
+    Serial.print(totalMilliLitres);
+    Serial.print("mL / ");
+    Serial.print(totalMilliLitres / 1000);
+    Serial.println("L");
+  }
+}
+// Function control for beer serving //
+void relayFunc() {
+  digitalWrite(relay, LOW); // Open valve and start pouring
 
-//     totalMilli += flowMilli;
-//   }
-// }
+  while(cupFull == false) {
+    flowSensor();
+
+    if(totalMilliLitres >= glassSize - tol) {
+      totalMilliLitres = 0;
+      cupFull = true;
+    }
+
+    if((totalMilliLitres >= glassSize/2) && (halfFull == false)) {
+      halfFull = true;
+
+      Wire.beginTransmission(8); /* begin with device address 8 */
+      Wire.write("s");  /* sends hello string */
+      Serial.print("Transmission sent regarding stepDown");
+      Wire.endTransmission();    /* stop transmitting */
+    }
+    delay(50); // How often it checks the current amount poured
+  }
+  Wire.beginTransmission(8); /* begin with device address 8 */
+  Wire.write("r");  /* sends hello string */
+  Serial.print("Transmission sent regarding cup removal");
+  Wire.endTransmission();    /* stop transmitting */
+
+  digitalWrite(relay, HIGH); // Close valve once glass is full
+  cupFull = false; // Reset
+  halfFull = false;
+}
 // Relay Control //
 void relayControl() {
   // The function controls what percentage of the duration for a whole beer tap that the relay should be turned on
   if (payload == "smagsprøve") {
     newSaldo = saldo - beerPrice;
-
+    relayFunc();
   } else if (payload == "halv") {
     newSaldo = saldo - beerPrice * 3;
     for (int i = 0; i < 3; i++) {
-
+      relayFunc();
     }
   } else if (payload == "hel") {
     newSaldo = saldo - beerPrice * 5;
     for (int i = 0; i < 5; i++) {
-
+      relayFunc();
     }
   } else {  // In the standard state, the relay is turned off
     digitalWrite(relay, HIGH);
@@ -210,26 +261,8 @@ void relaySlider() {
   newSaldo = saldo - beerPrice * sliderVal;
   client.publish("s204719@student.dtu.dk/saldo", String(newSaldo).c_str());
   for (int i = 0; i < sliderVal; i++) {
-    // Serial.print(sliderVal); Serial.print(" test"); Serial.println();
-    int newSliderVal = sliderVal - i;
-    Serial.println(newSliderVal);
-    client.publish("s204719@student.dtu.dk/beers", String(newSliderVal).c_str());
-    delay(500);
-
-    // if (and1 == 1) {
-    // int sliderVal = payload.toInt();  // Converts the recieved payload into an integer and converts it to the duration of which the
-    // for (int i = 0; i < sliderVal; i++) {
-    //   digitalWrite(relay, LOW);   // Relay turns on
-    //   delay(sliderVal * 1000);    // Relay is on for the duration received from the payload
-    //   digitalWrite(relay, HIGH);  // Relay is turned off
-    //   and1 = 0;
-    //   Serial.print("test");
-    // }
-
-    // }
-    // digitalWrite(relay, LOW);   // Relay turns on
-    // delay(sliderVal * 1000);    // Relay is on for the duration received from the payload
-    // digitalWrite(relay, HIGH);  // Relay is turned off
+    relayFunc();
+    delay(200);
   }
 }
 // Main Loop //
@@ -241,15 +274,6 @@ void loop() {
 
   // flowSensor();
 
-  if (and1 == 1 && slideGate == 1) {
-    relaySlider();  // Calls the relay slider function
-    slideGate = 0;
-  }
-  if (and1 == 1 && relayGate == 1) {
-    relayControl();
-    relayGate = 0;
-  }
-
   Wire.requestFrom(9, 1); /* request & read data of size 13 from slave */
   while (Wire.available()) {
     char c = Wire.read();
@@ -257,6 +281,38 @@ void loop() {
       and1 = 1;
     } else {
       and1 = 0;
+    }
+  }
+  if(inProcess == false) {
+    Wire.requestFrom(9, 1); /* request & read data of size 13 from slave */
+    while(Wire.available()){
+      char c = Wire.read();
+
+      if(c == '1') {
+        inProcess = true;
+
+        Serial.println();
+        Serial.print(c);
+
+        Wire.beginTransmission(8); /* begin with device address 8 */
+        Wire.write("d");  // Call dRead function from arduino with adress 8
+        Serial.print("Transmission sent");
+        Wire.endTransmission();    /* stop transmitting */
+      }
+    }
+  }
+  Wire.requestFrom(8, 1); /* request & read data of size 13 from slave */
+  while(Wire.available()){
+    char c = Wire.read();
+
+    if(c == 'y') {
+      delay(1000); // Adjust to time it takes for step motor to tilt cup
+      relayFunc();
+    }
+
+    if(c == 'r') {
+      inProcess = false;
+      Serial.print("Cup removed! Shit works :O !");
     }
   }
 }
