@@ -9,26 +9,33 @@
 #define sensor 27  // Flow Sensor pin
 
 // Function Variables //
-unsigned long currentTime;
-unsigned long previousTime;
+unsigned long currentMillis;
+unsigned long previousMillis;
 int flowInterval = 1000;
 float calibrationFactor = 4.5;
 volatile byte pulseCount;
 byte pulse1Sec = 0;
-int rateOfFlow;  // Flow rate chosen from the user interview
-unsigned int flowMilli = 1;
-unsigned long totalMilli;
-int fullGlass = 1;
-int fullGlassTime = 1;
+int flowRate;  // Flow rate chosen from the user interview
+unsigned int flowMilliLitres = 1;
+unsigned long totalMilliLitres;
 int totalKeg = 1;
 const int flowThreshold = 50;
-int and1;
 int sliderVal;
 int slideGate;
 int relayGate;
 int saldo;
 int newSaldo;
 int beerPrice;
+int glassSize = 500; // Should be configurable in NodeRed (nice to have)
+const int tol = 10; // Tolerance from relay close till it actually stops pouring
+
+
+// All the booleans
+bool inProcess = false;
+bool distanceRead = false;
+bool halfFull = false;
+bool cupFull = false;
+
 
 // WiFi Variables //
 const char *ssid = "WiFimodem-272D";  // Wifi name
@@ -114,7 +121,7 @@ void callback(char *byteArraytopic, byte *byteArrayPayload, unsigned int length)
       payload += (char)byteArrayPayload[i];
     }
     Serial.println(payload);  // Prints the payload
-    fullGlass = payload.toInt();
+    glassSize = payload.toInt();
   }
 }
 // MQTT Connection //
@@ -156,19 +163,70 @@ void setup() {
   client.setCallback(callback);              // Ingangsætter den definerede callback funktion hver gang der er en ny besked på den subscribede "cmd"- topic
 
   pulseCount = 0;
-  rateOfFlow = 0.0;
-  flowMilli = 0;
-  totalMilli = 0;
-  previousTime = 0;
+  flowRate = 0.0;
+  flowMilliLitres = 0;
+  totalMilliLitres = 0;
+  previousMillis = 0;
 
   attachInterrupt(digitalPinToInterrupt(sensor), pulseCounter, FALLING);
 
   Wire.begin(21, 22);
 }
+
+
+void pouringFunctions() {
+  distance1();
+  relayFunc();
+  distance2();
+  inProcess = false;
+}
+
+
+void distance1() { // Prevents the valve opening before a cup has been inserted
+  Wire.beginTransmission(8); /* begin with device address 8 */
+  Wire.write("d");  // Call dRead function from arduino with adress 8
+  Serial.print("Transmission sent");
+  Wire.endTransmission();    /* stop transmitting */
+
+  while(distanceRead == false) {
+    Wire.requestFrom(8, 1); /* request & read data of size 13 from slave */
+    while(Wire.available()){
+      char c = Wire.read();
+
+      if(c == 'y') {
+        delay(1000); // Adjust to time it takes for step motor to tilt cup
+        distanceRead = true;
+      }
+    }
+  }
+  distanceRead = false; // Reset
+}
+
+
+void distance2() { // Prevents a new process to begin until cup has been removed
+  Wire.beginTransmission(8); /* begin with device address 8 */
+  Wire.write("r");  // Call dRead function from arduino with adress 8
+  Serial.print("Transmission sent");
+  Wire.endTransmission();    /* stop transmitting */
+
+  while(distanceRead == false) {
+    Wire.requestFrom(8, 1); /* request & read data of size 13 from slave */
+    while(Wire.available()){
+      char c = Wire.read();
+
+      if(c == 'r') {
+        distanceRead = true;
+      }
+    }
+  }
+  distanceRead = false; // Reset
+}
+
+
 // Flow sensor control //
 void flowSensor() {
   currentMillis = millis();
-  if (currentMillis - previousMillis > interval) {
+  if (currentMillis - previousMillis > flowInterval) {
     
     pulse1Sec = pulseCount;
     pulseCount = 0;
@@ -239,19 +297,17 @@ void relayControl() {
   // The function controls what percentage of the duration for a whole beer tap that the relay should be turned on
   if (payload == "smagsprøve") {
     newSaldo = saldo - beerPrice;
-    relayFunc();
+
   } else if (payload == "halv") {
     newSaldo = saldo - beerPrice * 3;
     for (int i = 0; i < 3; i++) {
-      relayFunc();
+
     }
   } else if (payload == "hel") {
     newSaldo = saldo - beerPrice * 5;
     for (int i = 0; i < 5; i++) {
-      relayFunc();
+
     }
-  } else {  // In the standard state, the relay is turned off
-    digitalWrite(relay, HIGH);
   }
   client.publish("s204719@student.dtu.dk/saldo", String(newSaldo).c_str());
 }
@@ -261,7 +317,6 @@ void relaySlider() {
   newSaldo = saldo - beerPrice * sliderVal;
   client.publish("s204719@student.dtu.dk/saldo", String(newSaldo).c_str());
   for (int i = 0; i < sliderVal; i++) {
-    relayFunc();
     delay(200);
   }
 }
@@ -272,17 +327,15 @@ void loop() {
   }
   client.loop();
 
-  // flowSensor();
-
-  Wire.requestFrom(9, 1); /* request & read data of size 13 from slave */
-  while (Wire.available()) {
-    char c = Wire.read();
-    if (c == '1') {
-      and1 = 1;
-    } else {
-      and1 = 0;
-    }
-  }
+  // Wire.requestFrom(9, 1); /* request & read data of size 13 from slave */
+  // while (Wire.available()) {
+  //   char c = Wire.read();
+  //   if (c == '1') {
+  //     and1 = 1;
+  //   } else {
+  //     and1 = 0;
+  //   }
+  // }
   if(inProcess == false) {
     Wire.requestFrom(9, 1); /* request & read data of size 13 from slave */
     while(Wire.available()){
@@ -290,29 +343,17 @@ void loop() {
 
       if(c == '1') {
         inProcess = true;
+        Serial.println("Process began");
 
-        Serial.println();
-        Serial.print(c);
-
-        Wire.beginTransmission(8); /* begin with device address 8 */
-        Wire.write("d");  // Call dRead function from arduino with adress 8
-        Serial.print("Transmission sent");
-        Wire.endTransmission();    /* stop transmitting */
+        if(relayGate == 1) {
+          relayControl();
+          relayGate = 0;
+        } else 
+        if(slideGate == 1) {
+          relaySlider();
+          slideGate = 0;
+        }
       }
-    }
-  }
-  Wire.requestFrom(8, 1); /* request & read data of size 13 from slave */
-  while(Wire.available()){
-    char c = Wire.read();
-
-    if(c == 'y') {
-      delay(1000); // Adjust to time it takes for step motor to tilt cup
-      relayFunc();
-    }
-
-    if(c == 'r') {
-      inProcess = false;
-      Serial.print("Cup removed! Shit works :O !");
     }
   }
 }
