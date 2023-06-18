@@ -15,8 +15,8 @@ int flowInterval = 1000;
 float calibrationFactor = 4.5;
 volatile byte pulseCount;
 byte pulse1Sec = 0;
-int flowRate;  // Flow rate chosen from the user interview
-unsigned int flowMilliLitres = 1;
+float flowRate;  // Flow rate chosen from the user interview
+unsigned int flowMilliLitres;
 unsigned long totalMilliLitres;
 int totalKeg = 1;
 const int flowThreshold = 50;
@@ -38,8 +38,8 @@ bool cupFull = false;
 
 
 // WiFi Variables //
-const char *ssid = "WiFimodem-272D";  // Wifi name
-const char *password = "qtzqgzqwtz";  // Wifi pass
+const char *ssid = "FamillienGL";  // Wifi name
+const char *password = "FGL12345";  // Wifi pass
 
 
 // MQTT Broker Variables //
@@ -314,16 +314,19 @@ void relayControl() {
   // The function controls what percentage of the duration for a whole beer tap that the relay should be turned on
   if (payload == "smagsprøve") {
     newSaldo = saldo - beerPrice;
+    pouringFunctions();
 
   } else if (payload == "halv") {
     newSaldo = saldo - beerPrice * 3;
-    for (int i = 0; i < 3; i++) {
 
+    for (int i = 0; i < 3; i++) {
+      pouringFunctions();
     }
   } else if (payload == "hel") {
     newSaldo = saldo - beerPrice * 5;
-    for (int i = 0; i < 5; i++) {
 
+    for (int i = 0; i < 5; i++) {
+      pouringFunctions();
     }
   }
   client.publish("s204719@student.dtu.dk/saldo", String(newSaldo).c_str());
@@ -335,46 +338,44 @@ void relaySlider() {
   // The function controls what percentage of the duration for a whole beer tap that the relay should be turned on based on the slider input value
   newSaldo = saldo - beerPrice * sliderVal;
   client.publish("s204719@student.dtu.dk/saldo", String(newSaldo).c_str());
+
   for (int i = 0; i < sliderVal; i++) {
-    delay(200);
+    pouringFunctions();
   }
 }
 
 
 // Main Loop //
 void loop() {
-  if (!client.connected()) {
-    reconnect();
-  }
-  client.loop();
-
-  // Wire.requestFrom(9, 1); /* request & read data of size 13 from slave */
-  // while (Wire.available()) {
-  //   char c = Wire.read();
-  //   if (c == '1') {
-  //     and1 = 1;
-  //   } else {
-  //     and1 = 0;
-  //   }
+  // if (!client.connected()) {
+  //   reconnect();
   // }
+  // client.loop();
+
+
   if(inProcess == false) {
-    Wire.requestFrom(9, 1); /* request & read data of size 13 from slave */
-    while(Wire.available()){
-      char c = Wire.read();
+    // Wire.requestFrom(9, 1); /* request & read data of size 13 from slave */
+    // while(Wire.available()){
+    //   char c = Wire.read();
+      char c = '1';
+      slideGate = 1;
+      sliderVal = 3;
 
       if(c == '1') {
         inProcess = true;
         Serial.println("Process began");
 
         if(relayGate == 1) {
-          relayControl();
+          Serial.println("Relay Control function called");
           relayGate = 0;
+          relayControl();
         } else 
         if(slideGate == 1) {
-          relaySlider();
+          Serial.println("Relay Slider function called");
           slideGate = 0;
+          relaySlider();
         }
       }
     }
-  }
+  // }
 }
