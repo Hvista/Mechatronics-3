@@ -188,25 +188,16 @@ void relayControl() {
   // The function controls what percentage of the duration for a whole beer tap that the relay should be turned on
   if (payload == "smagsprøve") {
     newSaldo = saldo - beerPrice;
-    digitalWrite(relay, LOW);
-    delay((fullGlassTime)*1000);
-    digitalWrite(relay, HIGH);
-    Serial.println("den lille");
+
   } else if (payload == "halv") {
     newSaldo = saldo - beerPrice * 3;
     for (int i = 0; i < 3; i++) {
-      digitalWrite(relay, LOW);
-      delay((fullGlassTime)*1000);
-      digitalWrite(relay, HIGH);
-      Serial.println("den halve");
+
     }
   } else if (payload == "hel") {
     newSaldo = saldo - beerPrice * 5;
     for (int i = 0; i < 5; i++) {
-      digitalWrite(relay, LOW);
-      delay((fullGlassTime)*1000);
-      digitalWrite(relay, HIGH);
-      Serial.println("den hele");
+
     }
   } else {  // In the standard state, the relay is turned off
     digitalWrite(relay, HIGH);
