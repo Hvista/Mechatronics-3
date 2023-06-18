@@ -220,6 +220,7 @@ void relaySlider() {
   for (int i = 0; i < sliderVal; i++) {
     // Serial.print(sliderVal); Serial.print(" test"); Serial.println();
     int newSliderVal = sliderVal - i;
+    Serial.println(newSliderVal);
     client.publish("s204719@student.dtu.dk/beers", String(newSliderVal).c_str());
     delay(500);
     
@@ -257,7 +258,7 @@ void loop() {
     relayGate = 0;
   }
 
-  Wire.requestFrom(8, 1); /* request & read data of size 13 from slave */
+  Wire.requestFrom(9, 1); /* request & read data of size 13 from slave */
   while (Wire.available()) {
     char c = Wire.read();
     if (c == '1') {

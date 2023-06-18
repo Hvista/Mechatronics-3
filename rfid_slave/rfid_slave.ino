@@ -11,7 +11,7 @@ byte keyTagUID[4] = {0xF3, 0x15, 0xA4, 0x14};
 int and1;
 
 void setup() {
-  Wire.begin(8);                /* join i2c bus with address 8 */
+  Wire.begin(9);                /* join i2c bus with address 8 */
   Wire.onReceive(receiveEvent); /* register receive event */
   Wire.onRequest(requestEvent); /* register request event */
   Serial.begin(115200);         /* start serial for debug */
