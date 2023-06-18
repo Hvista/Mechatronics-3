@@ -223,17 +223,17 @@ void relaySlider() {
     client.publish("s204719@student.dtu.dk/beers", String(newSliderVal).c_str());
     delay(500);
     
-      if (and1 == 1) {
-      int sliderVal = payload.toInt();  // Converts the recieved payload into an integer and converts it to the duration of which the
-      for (int i = 0; i < sliderVal; i++) {
-        digitalWrite(relay, LOW);   // Relay turns on
-        delay(sliderVal * 1000);    // Relay is on for the duration received from the payload
-        digitalWrite(relay, HIGH);  // Relay is turned off
-        and1 = 0;
-        Serial.print("test");
-      }
+      // if (and1 == 1) {
+      // int sliderVal = payload.toInt();  // Converts the recieved payload into an integer and converts it to the duration of which the
+      // for (int i = 0; i < sliderVal; i++) {
+      //   digitalWrite(relay, LOW);   // Relay turns on
+      //   delay(sliderVal * 1000);    // Relay is on for the duration received from the payload
+      //   digitalWrite(relay, HIGH);  // Relay is turned off
+      //   and1 = 0;
+      //   Serial.print("test");
+      // }
 
-    }
+    // }
     // digitalWrite(relay, LOW);   // Relay turns on
     // delay(sliderVal * 1000);    // Relay is on for the duration received from the payload
     // digitalWrite(relay, HIGH);  // Relay is turned off
