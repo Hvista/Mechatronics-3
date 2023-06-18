@@ -108,14 +108,14 @@ void callback(char *byteArraytopic, byte *byteArrayPayload, unsigned int length)
     Serial.println(payload);  // Prints the payload
     beerPrice = payload.toInt();
   }
-  // if (topic == "s204719@student.dtu.dk/glassSize") {  // This topic receives the input from the UI buttons
-  //   payload = "";
-  //   for (int i = 0; i < length; i++) {
-  //     payload += (char)byteArrayPayload[i];
-  //   }
-  //   Serial.println(payload);  // Prints the payload
-  //   fullGlass = payload.toInt();
-  // }
+  if (topic == "s204719@student.dtu.dk/glassSize") {  // This topic receives the input from the UI buttons
+    payload = "";
+    for (int i = 0; i < length; i++) {
+      payload += (char)byteArrayPayload[i];
+    }
+    Serial.println(payload);  // Prints the payload
+    fullGlass = payload.toInt();
+  }
 }
 // MQTT Connection //
 void reconnect() {
@@ -131,7 +131,8 @@ void reconnect() {
       client.subscribe("s204719@student.dtu.dk/saldo");
       client.subscribe("s204719@student.dtu.dk/price");
       client.subscribe("s204719@student.dtu.dk/beers");
-    } else {  // Hvis forbindelsen fejler køres loopet igen efter 5 sekunder indtil forbindelse er oprettet
+      client.subscribe("s204719@student.dtu.dk/glassSize");
+    } else {  // If the connection fails, the loop will try again after 5 seconds until a connection has been established 
       Serial.print("failed, rc=");
       Serial.print(client.state());
       Serial.println(" try again in 5 seconds");
@@ -185,13 +186,13 @@ void setup() {
 // Relay Control //
 void relayControl() {
   // The function controls what percentage of the duration for a whole beer tap that the relay should be turned on
-  if (payload == "smagsprøve") {  
+  if (payload == "smagsprøve") {
     newSaldo = saldo - beerPrice;
     digitalWrite(relay, LOW);
     delay((fullGlassTime)*1000);
     digitalWrite(relay, HIGH);
     Serial.println("den lille");
-  } else if (payload == "halv") {  
+  } else if (payload == "halv") {
     newSaldo = saldo - beerPrice * 3;
     for (int i = 0; i < 3; i++) {
       digitalWrite(relay, LOW);
@@ -199,7 +200,7 @@ void relayControl() {
       digitalWrite(relay, HIGH);
       Serial.println("den halve");
     }
-  } else if (payload == "hel") {  
+  } else if (payload == "hel") {
     newSaldo = saldo - beerPrice * 5;
     for (int i = 0; i < 5; i++) {
       digitalWrite(relay, LOW);
@@ -209,7 +210,7 @@ void relayControl() {
     }
   } else {  // In the standard state, the relay is turned off
     digitalWrite(relay, HIGH);
-    }
+  }
   client.publish("s204719@student.dtu.dk/saldo", String(newSaldo).c_str());
 }
 // Relay Slider //
@@ -223,16 +224,16 @@ void relaySlider() {
     Serial.println(newSliderVal);
     client.publish("s204719@student.dtu.dk/beers", String(newSliderVal).c_str());
     delay(500);
-    
-      // if (and1 == 1) {
-      // int sliderVal = payload.toInt();  // Converts the recieved payload into an integer and converts it to the duration of which the
-      // for (int i = 0; i < sliderVal; i++) {
-      //   digitalWrite(relay, LOW);   // Relay turns on
-      //   delay(sliderVal * 1000);    // Relay is on for the duration received from the payload
-      //   digitalWrite(relay, HIGH);  // Relay is turned off
-      //   and1 = 0;
-      //   Serial.print("test");
-      // }
+
+    // if (and1 == 1) {
+    // int sliderVal = payload.toInt();  // Converts the recieved payload into an integer and converts it to the duration of which the
+    // for (int i = 0; i < sliderVal; i++) {
+    //   digitalWrite(relay, LOW);   // Relay turns on
+    //   delay(sliderVal * 1000);    // Relay is on for the duration received from the payload
+    //   digitalWrite(relay, HIGH);  // Relay is turned off
+    //   and1 = 0;
+    //   Serial.print("test");
+    // }
 
     // }
     // digitalWrite(relay, LOW);   // Relay turns on
