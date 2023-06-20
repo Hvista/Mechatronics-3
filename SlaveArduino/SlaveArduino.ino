@@ -25,6 +25,11 @@ void setup() {
   Wire.onReceive(receiveEvent); /* register receive event */
   Wire.onRequest(requestEvent); /* register request event */
   Serial.begin(115200);           /* start serial for debug */
+
+  // Zero stepper
+  myStepper.setSpeed(10);
+	myStepper.step(stepsPerRevolution/4);
+  myStepper.step((-stepsPerRevolution/16)*3);
 }
 
 
@@ -75,31 +80,32 @@ void requestEvent() {
     request = 'n';
 
     Wire.write(c);  /*send string on request */
-    Serial.print("Request send to ESP32");
+    Serial.println("Request send to ESP32: Cup insert approved");
     } else
   if(request == 'r') {
     char c = 'r';
     request = 'n';
 
+    delay(50);
     Wire.write(c);  /*send string on request */
-    Serial.print("Request send to ESP32");
+    Serial.println("Request send to ESP32: Cup removed approved");
   }
 }
 
 void stepUp() {
-  delay(1000);
   // Rotate upwards
 	myStepper.setSpeed(5);
-	myStepper.step(-stepsPerRevolution/8);
+	myStepper.step(stepsPerRevolution/8);
 }
 
 void stepDown() {
   // Rotate downwards slowly
 	myStepper.setSpeed(3);
-	myStepper.step(stepsPerRevolution/8);
+	myStepper.step(-stepsPerRevolution/8);
 }
 
 void dRead() {
+  Serial.println("dRead called");
   int dArray[5] = {0,0,0,0,0};
 
   while(goodRead == false) {
@@ -133,6 +139,7 @@ void dRead() {
 
 
 void dRead2() {
+  Serial.println("dRead2 called");
   int dArray[5] = {0,0,0,0,0};
 
   while(goodRead == false) {
