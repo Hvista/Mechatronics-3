@@ -8,33 +8,38 @@
 #define relay 14   // Relay pin
 #define sensor 27  // Flow Sensor pin
 
-// Function Variables //
-unsigned long currentMillis;
-unsigned long previousMillis;
-int flowInterval = 1000;
-float calibrationFactor = 4.5;
-volatile byte pulseCount;
+// Water flow sensor function variables //
+unsigned long currentMillis;    // Variable used to log current time
+unsigned long previousMillis;   // Variable used to save previous logged time
+int flowInterval = 1000;        // Interval used for the sensor
+float calibrationFactor = 4.5;  // Variable used for deviation in sensor readings
+volatile byte pulseCount;       // Variable for pulse readings in flow sensor
 byte pulse1Sec = 0;
-int flowRate;  // Flow rate chosen from the user interview
-unsigned int flowMilliLitres = 1;
-unsigned long totalMilliLitres;
-int totalKeg = 1;
+int flowRate;                      // Flow rate chosen from the user interview
+unsigned int flowMilliLitres = 1;  // Flow rate logged from water flow sensor
+
+// UI input variables
+unsigned long totalMilliLitres;  // Total logged millillitres read from water flow sensor
+int totalKeg = 1;                // Total size of kegged registered from user
+/* Tror ikke vi har brug for den her variable?
 const int flowThreshold = 50;
-int sliderVal;
-int slideGate;
-int relayGate;
-int saldo;
-int newSaldo;
-int beerPrice;
-int glassSize = 500; // Should be configurable in NodeRed (nice to have)
-const int tol = 10; // Tolerance from relay close till it actually stops pouring
+*/
+//
+int sliderVal;       // Value sent from slider
+int slideGate;       // Variable used to create and and-gate so only sliderVal can pass through the rest of the code
+int relayGate;       // Variable used to create and and-gate so only a preset value can pass through the rest of the code
+int saldo;           // How much money the user inserts into the UI
+int newSaldo;        // The updated money amount based on the purchase chosen
+int beerPrice;       // Input price of 1 beer
+int glassSize;       // Input size of 1 glass of beer
+const int tol = 10;  // Tolerance from relay close till it actually stops pouring
 
 
-// All the booleans
-bool inProcess = false;
-bool distanceRead = false;
-bool halfFull = false;
-bool cupFull = false;
+// Boolean Variables //
+bool inProcess = false;     // Check if beer pouring is in progress
+bool distanceRead = false;  //  Check if HC-SR04 Module is reading
+bool halfFull = false;      // Check if
+bool cupFull = false;       // Check if cup is full based on input cup size
 
 
 // WiFi Variables //
@@ -139,7 +144,7 @@ void reconnect() {
       client.subscribe("s204719@student.dtu.dk/price");
       client.subscribe("s204719@student.dtu.dk/beers");
       client.subscribe("s204719@student.dtu.dk/glassSize");
-    } else {  // If the connection fails, the loop will try again after 5 seconds until a connection has been established 
+    } else {  // If the connection fails, the loop will try again after 5 seconds until a connection has been established
       Serial.print("failed, rc=");
       Serial.print(client.state());
       Serial.println(" try again in 5 seconds");
@@ -162,6 +167,7 @@ void setup() {
   client.setServer(mqtt_server, mqtt_port);  // Connects to MQTT broker
   client.setCallback(callback);              // Ingangsætter den definerede callback funktion hver gang der er en ny besked på den subscribede "cmd"- topic
 
+  // All water flow sensor variables are set to 0 during setup //
   pulseCount = 0;
   flowRate = 0.0;
   flowMilliLitres = 0;
@@ -170,56 +176,54 @@ void setup() {
 
   attachInterrupt(digitalPinToInterrupt(sensor), pulseCounter, FALLING);
 
-  Wire.begin(21, 22);
+  Wire.begin(21, 22);  // Sets up connection from ESP32 to Arduino Unos through SDA (Serial Data) and SCL (Serial Clock) pins
 }
-
-
+// Beer pouring function //
 void pouringFunctions() {
-  distance1();
-  relayFunc();
-  distance2();
-  inProcess = false;
+  distance1();        // We first check if a cup is present in front of the HC-SR04 module, thereby it also being under the faucet
+  relayFunc();        // Thereafter, the relay function is called to control the pouring of the beverage
+  distance2();        // We then check if the cup is removed before pouring another beverage
+  inProcess = false;  // inProcess boolean is set to false to alow further pouring (reset)
 }
-
-
-void distance1() { // Prevents the valve opening before a cup has been inserted
-  Wire.beginTransmission(8); /* begin with device address 8 */
-  Wire.write("d");  // Call dRead function from arduino with adress 8
+// Cup sensor registration function //
+void distance1() {            // Prevents the valve opening before a cup has been inserted
+  Wire.beginTransmission(8);  // begin with device address 8
+  Wire.write("d");            // Call dRead function from arduino with adress 8
   Serial.print("Transmission sent");
-  Wire.endTransmission();    /* stop transmitting */
+  Wire.endTransmission();  // stop transmitting
 
-  while(distanceRead == false) {
-    Wire.requestFrom(8, 1); /* request & read data of size 13 from slave */
-    while(Wire.available()){
-      char c = Wire.read();
+  while (distanceRead == false) {
+    Wire.requestFrom(8, 1);  // request & read data of size 1 from worker
+    while (Wire.available()) {
+      char c = Wire.read();  // received data is stored in the variable "c"
 
-      if(c == 'y') {
-        delay(1000); // Adjust to time it takes for step motor to tilt cup
+      if (c == 'y') {
+        delay(1000);  // Adjust to time it takes for step motor to tilt cup
         distanceRead = true;
       }
     }
   }
-  distanceRead = false; // Reset
+  distanceRead = false;  // Reset
 }
 
 
-void distance2() { // Prevents a new process to begin until cup has been removed
-  Wire.beginTransmission(8); /* begin with device address 8 */
-  Wire.write("r");  // Call dRead function from arduino with adress 8
+void distance2() {            // Prevents a new process to begin until cup has been removed
+  Wire.beginTransmission(8);  // begin with device address 8
+  Wire.write("r");            // Call dRead function from arduino with adress 8
   Serial.print("Transmission sent");
-  Wire.endTransmission();    /* stop transmitting */
+  Wire.endTransmission(); /* stop transmitting */
 
-  while(distanceRead == false) {
-    Wire.requestFrom(8, 1); /* request & read data of size 13 from slave */
-    while(Wire.available()){
+  while (distanceRead == false) {
+    Wire.requestFrom(8, 1);  // request & read data of size 1 from worker
+    while (Wire.available()) {
       char c = Wire.read();
 
-      if(c == 'r') {
+      if (c == 'r') {
         distanceRead = true;
       }
     }
   }
-  distanceRead = false; // Reset
+  distanceRead = false;  // Reset
 }
 
 
@@ -227,7 +231,7 @@ void distance2() { // Prevents a new process to begin until cup has been removed
 void flowSensor() {
   currentMillis = millis();
   if (currentMillis - previousMillis > flowInterval) {
-    
+
     pulse1Sec = pulseCount;
     pulseCount = 0;
 
@@ -246,12 +250,12 @@ void flowSensor() {
 
     // Add the millilitres passed in this second to the cumulative total
     totalMilliLitres += flowMilliLitres;
-    
+
     // Print the flow rate for this second in litres / minute
     Serial.print("Flow rate: ");
     Serial.print(int(flowRate));  // Print the integer part of the variable
     Serial.print("L/min");
-    Serial.print("\t");       // Print tab space
+    Serial.print("\t");  // Print tab space
 
     // Print the cumulative total of litres flowed since starting
     Serial.print("Output Liquid Quantity: ");
@@ -263,33 +267,33 @@ void flowSensor() {
 }
 // Function control for beer serving //
 void relayFunc() {
-  digitalWrite(relay, LOW); // Open valve and start pouring
+  digitalWrite(relay, LOW);  // Open valve and start pouring
 
-  while(cupFull == false) {
-    flowSensor();
+  while (cupFull == false) {  // While cup isn't full
+    flowSensor();             // Flow sensor function is called
 
-    if(totalMilliLitres >= glassSize - tol) {
-      totalMilliLitres = 0;
-      cupFull = true;
+    if (totalMilliLitres >= glassSize - tol) {  // If total read millilitres if greater than input glass size
+      totalMilliLitres = 0;                     // Reset total read millilitres
+      cupFull = true;                           // Register cup is now full
     }
 
-    if((totalMilliLitres >= glassSize/2) && (halfFull == false)) {
+    if ((totalMilliLitres >= glassSize / 2) && (halfFull == false)) {
       halfFull = true;
 
-      Wire.beginTransmission(8); /* begin with device address 8 */
-      Wire.write("s");  /* sends hello string */
+      Wire.beginTransmission(8); // Begin sending data to device with address 8 
+      Wire.write("s");           // Sends string
       Serial.print("Transmission sent regarding stepDown");
-      Wire.endTransmission();    /* stop transmitting */
+      Wire.endTransmission(); // stop transmitting 
     }
-    delay(50); // How often it checks the current amount poured
+    delay(50);  // How often it checks the current amount poured
   }
   Wire.beginTransmission(8); /* begin with device address 8 */
-  Wire.write("r");  /* sends hello string */
+  Wire.write("r");           /* sends hello string */
   Serial.print("Transmission sent regarding cup removal");
-  Wire.endTransmission();    /* stop transmitting */
+  Wire.endTransmission(); /* stop transmitting */
 
-  digitalWrite(relay, HIGH); // Close valve once glass is full
-  cupFull = false; // Reset
+  digitalWrite(relay, HIGH);  // Close valve once glass is full
+  cupFull = false;            // Reset
   halfFull = false;
 }
 // Relay Control //
@@ -301,12 +305,10 @@ void relayControl() {
   } else if (payload == "halv") {
     newSaldo = saldo - beerPrice * 3;
     for (int i = 0; i < 3; i++) {
-
     }
   } else if (payload == "hel") {
     newSaldo = saldo - beerPrice * 5;
     for (int i = 0; i < 5; i++) {
-
     }
   }
   client.publish("s204719@student.dtu.dk/saldo", String(newSaldo).c_str());
@@ -336,20 +338,19 @@ void loop() {
   //     and1 = 0;
   //   }
   // }
-  if(inProcess == false) {
+  if (inProcess == false) {
     Wire.requestFrom(9, 1); /* request & read data of size 13 from slave */
-    while(Wire.available()){
+    while (Wire.available()) {
       char c = Wire.read();
 
-      if(c == '1') {
+      if (c == '1') {
         inProcess = true;
         Serial.println("Process began");
 
-        if(relayGate == 1) {
+        if (relayGate == 1) {
           relayControl();
           relayGate = 0;
-        } else 
-        if(slideGate == 1) {
+        } else if (slideGate == 1) {
           relaySlider();
           slideGate = 0;
         }
