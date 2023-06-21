@@ -17,14 +17,11 @@ volatile byte pulseCount;       // Variable for pulse readings in flow sensor
 byte pulse1Sec = 0;
 int flowRate;                      // Flow rate chosen from the user interview
 unsigned int flowMilliLitres = 1;  // Flow rate logged from water flow sensor
+unsigned long totalMilliLitres;  // Total logged millillitres read from water flow sensor
+unsigned long totalLoggedMillilitres; // Total logged millilitres in a saved value
 
 // UI input variables
-unsigned long totalMilliLitres;  // Total logged millillitres read from water flow sensor
 int totalKeg = 1;                // Total size of kegged registered from user
-/* Tror ikke vi har brug for den her variable?
-const int flowThreshold = 50;
-*/
-//
 int sliderVal;       // Value sent from slider
 int slideGate;       // Variable used to create and and-gate so only sliderVal can pass through the rest of the code
 int relayGate;       // Variable used to create and and-gate so only a preset value can pass through the rest of the code
@@ -137,6 +134,14 @@ void callback(char *byteArraytopic, byte *byteArrayPayload, unsigned int length)
     Serial.println(payload);  // Prints the payload
     glassSize = payload.toInt();
   }
+  if (topic == "s204719@student.dtu.dk/kegSize") {  // This topic receives the input from the UI buttons
+    payload = "";
+    for (int i = 0; i < length; i++) {
+      payload += (char)byteArrayPayload[i];
+    }
+    Serial.println(payload);  // Prints the payload
+    totalKeg = payload.toInt();
+  }
 }
 
 
@@ -153,8 +158,8 @@ void reconnect() {
       client.subscribe("s204719@student.dtu.dk/beerSlider");
       client.subscribe("s204719@student.dtu.dk/saldo");
       client.subscribe("s204719@student.dtu.dk/price");
-      client.subscribe("s204719@student.dtu.dk/beers");
       client.subscribe("s204719@student.dtu.dk/glassSize");
+      client.subscribe("s204719@student.dtu.dk/kegSize");
     } else {  // If the connection fails, the loop will try again after 5 seconds until a connection has been established
       Serial.print("failed, rc=");
       Serial.print(client.state());
@@ -263,6 +268,7 @@ void flowSensor() {
 
     // Add the millilitres passed in this second to the cumulative total
     totalMilliLitres += flowMilliLitres;
+    totalLoggedMillilitres += flowMilliLitres;
 
     // Print the flow rate for this second in litres / minute
     Serial.print("Flow rate: ");
@@ -377,5 +383,9 @@ void loop() {
         }
       }
     }
+  }
+  if (totalLoggedMillilitres > (totalKeg - 0.2) * 1000){
+    client.publish("s204719@student.dtu.dk/kegSize", "empty");
+    totalLoggedMillilitres = 0;
   }
 }
