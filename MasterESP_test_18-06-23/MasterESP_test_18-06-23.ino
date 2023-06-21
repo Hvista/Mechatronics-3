@@ -197,8 +197,8 @@ void setup() {
 
 void pouringFunctions() {
   Serial.println("Pouring process began");
-  delay(200);
-  distance1();
+  delay(200); // Several delays have been put in, since the Wire.write's don't always
+  distance1(); // go through if the slave arduino is currently executing a process
   delay(200);
   relayFunc();
   delay(200);
@@ -209,6 +209,7 @@ void pouringFunctions() {
 
 void distance1() { // Prevents the valve opening before a cup has been inserted
   Wire.beginTransmission(8); /* begin with device address 8 */
+  delay(400);
   Wire.write("d");  // Call dRead function from arduino with adress 8
   Serial.println("Transmission sent regarding cup insert");
   Wire.endTransmission();    /* stop transmitting */
@@ -219,6 +220,11 @@ void distance1() { // Prevents the valve opening before a cup has been inserted
       char c = Wire.read();
 
       if(c == 'y') {
+        Wire.beginTransmission(9); /* begin with device address 8 */
+        Wire.write("d");  // Call dRead function from arduino with adress 8
+        Serial.println("Approved cup insert sent to LED's");
+        Wire.endTransmission();    /* stop transmitting */
+        
         delay(1000); // Adjust to time it takes for step motor to tilt cup
         distanceRead = true;
       }
@@ -230,6 +236,7 @@ void distance1() { // Prevents the valve opening before a cup has been inserted
 
 void distance2() { // Prevents a new process to begin until cup has been removed
   Wire.beginTransmission(8); /* begin with device address 8 */
+  delay(400);
   Wire.write("r");  // Call dRead function from arduino with adress 8
   Serial.println("Transmission sent regarding cup removal");
   Wire.endTransmission();    /* stop transmitting */
@@ -323,6 +330,12 @@ void relayFunc() {
   digitalWrite(relay, HIGH); // Close valve once glass is full
   cupFull = false; // Reset
   halfFull = false;
+
+  Wire.beginTransmission(9); /* begin with device address 8 */
+  delay(400);
+  Wire.write("f");  // Call dRead function from arduino with adress 8
+  Serial.println("Process finished sent to LED's");
+  Wire.endTransmission();    /* stop transmitting */
 }
 
 
