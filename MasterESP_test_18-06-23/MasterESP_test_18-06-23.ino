@@ -29,14 +29,14 @@ int newSaldo;
 // int glassSize; // Should be configurable in NodeRed (nice to have)
 const int tol = 10; // Tolerance from relay close till it actually stops pouring
 unsigned int usedKeg;
-unsigned long fullKegSize = 1000;
+unsigned long fullKegSize = 50000;
 
 
-// Hardcode values for testing
+// // Hardcode values for testing
 int saldo = 300;
 int beerPrice = 75;
-int glassSize = 1000;
-int sliderVal = 3;
+int glassSize = 200;
+int sliderVal = 1;
 
 
 // All the booleans
@@ -178,7 +178,7 @@ void setup() {
   digitalWrite(relay, HIGH);      // The relay starts in "ON" mode, so we send a HIGH to turn it of in the beginning
   pinMode(sensor, INPUT_PULLUP);  // Sets the sensor as output
 
-  Serial.begin(115200);                      // Baud rate
+  Serial.begin(500000);                      // Baud rate
   setup_wifi();                              // Setup wifi function
   client.setServer(mqtt_server, mqtt_port);  // Connects to MQTT broker
   client.setCallback(callback);              // Ingangsætter den definerede callback funktion hver gang der er en ny besked på den subscribede "cmd"- topic
@@ -209,7 +209,7 @@ void pouringFunctions() {
 
 void distance1() { // Prevents the valve opening before a cup has been inserted
   Wire.beginTransmission(8); /* begin with device address 8 */
-  delay(400);
+  delay(1200);
   Wire.write("d");  // Call dRead function from arduino with adress 8
   Serial.println("Transmission sent regarding cup insert");
   Wire.endTransmission();    /* stop transmitting */
@@ -224,8 +224,8 @@ void distance1() { // Prevents the valve opening before a cup has been inserted
         Wire.write("d");  // Call dRead function from arduino with adress 8
         Serial.println("Approved cup insert sent to LED's");
         Wire.endTransmission();    /* stop transmitting */
-        
-        delay(1000); // Adjust to time it takes for step motor to tilt cup
+
+        delay(1600); // Adjust to time it takes for step motor to tilt cup
         distanceRead = true;
       }
     }
@@ -236,7 +236,7 @@ void distance1() { // Prevents the valve opening before a cup has been inserted
 
 void distance2() { // Prevents a new process to begin until cup has been removed
   Wire.beginTransmission(8); /* begin with device address 8 */
-  delay(400);
+  delay(1500);
   Wire.write("r");  // Call dRead function from arduino with adress 8
   Serial.println("Transmission sent regarding cup removal");
   Wire.endTransmission();    /* stop transmitting */
@@ -247,6 +247,11 @@ void distance2() { // Prevents a new process to begin until cup has been removed
       char c = Wire.read();
 
       if(c == 'r') {
+        Wire.beginTransmission(9); /* begin with device address 8 */
+        Wire.write("c");  // Call dRead function from arduino with adress 8
+        Serial.println("Approved cup insert sent to LED's");
+        Wire.endTransmission();    /* stop transmitting */
+
         distanceRead = true;
       }
     }
@@ -316,15 +321,15 @@ void relayFunc() {
       cupFull = true;
     }
 
-    if((totalMilliLitres >= glassSize/2) && (halfFull == false)) {
-      halfFull = true;
+    // if((totalMilliLitres >= glassSize/6) && (halfFull == false)) {
+    //   halfFull = true;
 
-      Wire.beginTransmission(8); /* begin with device address 8 */
-      Wire.write("s");  /* sends hello string */
-      Serial.print("Transmission sent regarding stepDown");
-      Wire.endTransmission();    /* stop transmitting */
-    }
-    delay(50); // How often it checks the current amount poured
+    //   Wire.beginTransmission(8); /* begin with device address 8 */
+    //   Wire.write("s");  /* sends hello string */
+    //   Serial.print("Transmission sent regarding stepDown");
+    //   Wire.endTransmission();    /* stop transmitting */
+    // }
+    delay(40); // How often it checks the current amount poured
   }
 
   digitalWrite(relay, HIGH); // Close valve once glass is full
@@ -332,7 +337,7 @@ void relayFunc() {
   halfFull = false;
 
   Wire.beginTransmission(9); /* begin with device address 8 */
-  delay(400);
+  delay(500);
   Wire.write("f");  // Call dRead function from arduino with adress 8
   Serial.println("Process finished sent to LED's");
   Wire.endTransmission();    /* stop transmitting */
@@ -359,6 +364,12 @@ void relayControl() {
       pouringFunctions();
     }
   }
+  Wire.beginTransmission(9); /* begin with device address 8 */
+  delay(1500);
+  Wire.write("r");  // Call dRead function from arduino with adress 8
+  Serial.println("Transmission sent regarding finished process");
+  Wire.endTransmission();    /* stop transmitting */
+
   inProcess = false;
   client.publish("s204719@student.dtu.dk/saldo", String(newSaldo).c_str());
 }
@@ -373,6 +384,12 @@ void relaySlider() {
   for (int i = 0; i < sliderVal; i++) {
     pouringFunctions();
   }
+  Wire.beginTransmission(9); /* begin with device address 8 */
+  delay(1500);
+  Wire.write("r");  // Call dRead function from arduino with adress 8
+  Serial.println("Transmission sent regarding finished process");
+  Wire.endTransmission();    /* stop transmitting */
+
   inProcess = false;
 }
 

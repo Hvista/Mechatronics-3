@@ -56,17 +56,21 @@ void loop() {
 void receiveEvent(int howMany) {
  while (0 <Wire.available()) {
     char c = Wire.read();      /* receive byte as a character */
-    // Serial.print(c);           /* print the character */
+    Serial.print(c);           /* print the character */
 
     if(c == 's') {
-      function = 1;
+      // Serial.println("Event recieved: Step motor");
+      // function = 1;
     } 
 
     if(c == 'd') {
+      Serial.println("Event recieved: Distance read cup insert");
       function = 2;
     } 
 
     if(c == 'r') {
+      Serial.println("Event recieved: Cup removal");
+      delay(500);
       function = 3;
     }
   }
@@ -95,10 +99,13 @@ void requestEvent() {
 void stepUp() {
   // Rotate upwards
 	myStepper.setSpeed(5);
-	myStepper.step(stepsPerRevolution/8);
+	myStepper.step((stepsPerRevolution/24)*7);
+
+  stepDown();
 }
 
 void stepDown() {
+  Serial.println("   -- Step down running! --   ");
   // Rotate downwards slowly
 	myStepper.setSpeed(3);
 	myStepper.step(-stepsPerRevolution/8);
@@ -123,7 +130,7 @@ void dRead() {
     Serial.println(sum/5);
     Serial.println();
 
-    if((sum/5 < 30) && (sum/5 > 20)) { // 30 & 20 are the tolerance for cup distance
+    if((sum/5 < 11) && (sum/5 > 4)) { // 30 & 20 are the tolerance for cup distance
       goodRead = true;
 
       request = 'y';
@@ -144,7 +151,7 @@ void dRead2() {
 
   while(goodRead == false) {
     for(int i = 0; i < 5; i++){
-      delay(60);
+      delay(200); // Delay between each cup remove check
 
       duration = sonar.ping();
       dArray[i] = (duration / 2) * 0.0343;
@@ -157,7 +164,7 @@ void dRead2() {
     Serial.println(sum/5);
     Serial.println();
 
-    if(sum/5 > 20) { // 20 is the cup distance
+    if(sum/5 > 30) { // 20 is the cup distance
       goodRead = true;
 
       request = 'r';

@@ -29,6 +29,7 @@ bool reset = false;  // Once process is done, reset everything
 bool scanned = false;
 bool cupIn = false;
 bool finish = false;
+bool pourDone = false;
 unsigned long rainbowTimer = 0;
 unsigned long blinkTimer = 0;
 const unsigned long rainbowInterval = 60;  // Interval for rainbow shifting (in milliseconds)
@@ -61,10 +62,17 @@ void loop() {
     ledBlinkScan();
   } else if (cupIn == false) {
     ledBlinkCup();
-  } else if (cupIn == true && finish == false) {
+  } else if (cupIn == true && pourDone == false) {
     cupInserted();
-  } else if (finish == true) {
+  } else if (cupIn == true && pourDone == true) {
     finished();
+  }
+
+  if(finish == true) {
+    cupRemoved();
+    finish = false;
+    cupIn = false;
+    pourDone = false;
   }
 
   if(reset == true) {
@@ -72,6 +80,7 @@ void loop() {
     scanned = false;
     cupIn = false;
     finish = false;
+    pourDone = false;
   }
 }
 
@@ -176,8 +185,32 @@ void cupInserted() {
 
 
 void finished() {
-  cupIn = false;
-  finish = false;
+  // BW Cup
+      for (int i = 19; i < 21; i++) {
+        leds[i] = CRGB::Black;
+      } // BW Enjoy
+      for (int i = 21; i < 24; i++) {
+        leds[i] = CRGB::Green;
+      }
+      FastLED.show();
+
+      for (int i = 21; i < 24; i++) {
+        leds[i] = CRGB::Black;
+      }
+      FastLED.show();
+}
+
+void cupRemoved() {
+  for(int i = 0; i < 2; i++) {
+    for (int8_t ledIndex = 21; ledIndex < 24; ++ledIndex) {
+      leds[ledIndex] = CRGB::Green;  // Turn off LEDs 7-24
+    }
+    delay(250);
+    for (int8_t ledIndex = 21; ledIndex < 24; ++ledIndex) {
+      leds[ledIndex] = CRGB::Black;  // Turn off LEDs 7-24
+    }
+    delay(250);
+  }
 }
 
 
@@ -206,25 +239,13 @@ void receiveEvent(int howMany) {
       cupIn = true;
     } else
     if (c == 'f') {
-      // BW Cup
-      for (int i = 19; i < 21; i++) {
-        leds[i] = CRGB::Black;
-      } // BW Enjoy
-      for (int i = 21; i < 24; i++) {
-        leds[i] = CRGB::Green;
-      }
-      FastLED.show();
-      delay(3000);
-
-      for (int i = 21; i < 24; i++) {
-        leds[i] = CRGB::Black;
-      }
-      FastLED.show();
-
-      finish = true;
+      pourDone = true;
     } else
     if (c == 'r') {
       reset = true;
+    } else
+    if (c == 'c') {
+      finish = true;
     }
   }
   Serial.println(); /* to newline */
