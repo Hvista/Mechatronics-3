@@ -25,7 +25,7 @@ byte keyTagUID[4] = { 0xF3, 0x15, 0xA4, 0x14 };
 
 // Variables
 int and1;
-bool reset = false;  // Once process is done, reset everything
+bool reset = false;  // Once process is done, reset everything. Rest is booleans for the light sequence, depending on how far in the process the pouring is.
 bool scanned = false;
 bool cupIn = false;
 bool finish = false;
@@ -37,7 +37,7 @@ const unsigned long blinkInterval = 500;   // Interval for LED blinking (in mill
 bool blinkState = false;
 
 void setup() {
-  Wire.begin(9);                /* join i2c bus with address 8 */
+  Wire.begin(9);                /* join I2C bus with address 8 */
   Wire.onReceive(receiveEvent); /* register receive event */
   Wire.onRequest(requestEvent); /* register request event */
   Serial.begin(115200);         /* start serial for debug */
@@ -46,7 +46,7 @@ void setup() {
 
   FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, NUM_LEDS);
 
-  // BW App
+  // BW App light on start
   for (int i = 13; i < 15; i++) {
     leds[i] = CRGB::White;
   }
@@ -57,6 +57,7 @@ void setup() {
 void loop() {
   rainbowShift();
 
+  // Lots of if statements that change the LED's depending on how far we are in the process.
   if (scanned == false) {
     idReader();
     ledBlinkScan();
@@ -68,6 +69,7 @@ void loop() {
     finished();
   }
 
+  // Reset for a new cup to be poured.
   if(finish == true) {
     cupRemoved();
     finish = false;
@@ -75,6 +77,7 @@ void loop() {
     pourDone = false;
   }
 
+  // Reset for a new scan to happen.
   if(reset == true) {
     reset = false;
     scanned = false;
@@ -101,6 +104,7 @@ void approvedScan() {
 }
 
 
+// This is taken from a rainbow color palette from the library
 void rainbowShift() {
   if (millis() - rainbowTimer >= rainbowInterval) {
     static uint8_t hue = 0;  // Variable to store the hue value
@@ -123,6 +127,7 @@ void rainbowShift() {
 }
 
 
+// This was coded so that the blinking can happen without a delay that sets the whole arduino on a delay.
 void ledBlinkScan() {
   if (millis() - blinkTimer >= blinkInterval) {
     if (blinkState) {
@@ -264,6 +269,7 @@ void idReader() {
     if (rfid.PICC_ReadCardSerial()) {  // NUID has been readed
       MFRC522::PICC_Type piccType = rfid.PICC_GetType(rfid.uid.sak);
 
+      // RFID code for a card
       if (rfid.uid.uidByte[0] == keyTagUID[0] && rfid.uid.uidByte[1] == keyTagUID[1] && rfid.uid.uidByte[2] == keyTagUID[2] && rfid.uid.uidByte[3] == keyTagUID[3]) {
         Serial.println("Access is granted");
         and1 = '1';

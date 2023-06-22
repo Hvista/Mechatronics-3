@@ -1,15 +1,15 @@
 // Libraries
-#include <Wire.h>
+#include <Wire.h> // I2C connection
 #include <Stepper.h>
 #include <NewPing.h>
 
 
 // Variables
-const int stepsPerRevolution = 2038;
-int function = 0;
-int max_distance = 100;
-float duration, distance;
-bool goodRead = false;
+const int stepsPerRevolution = 2048; // This should actually be 64 according to our stepper, but the value 
+int function = 0; 
+int max_distance = 100; // Max reading distance for echo locator
+float duration, distance; // Echo locator variables
+bool goodRead = false; 
 char request = 'n';
 
 
@@ -21,7 +21,7 @@ NewPing sonar(trigPin, echoPin, max_distance);
 
 
 void setup() {
-  Wire.begin(8);                /* join i2c bus with address 8 */
+  Wire.begin(8);                /* join I2C bus with address 8 */
   Wire.onReceive(receiveEvent); /* register receive event */
   Wire.onRequest(requestEvent); /* register request event */
   Serial.begin(115200);           /* start serial for debug */
@@ -34,6 +34,7 @@ void setup() {
 
 
 void loop() {
+    // Function variable gets it's value from recieve event function.
     if (function == 1) {
       Serial.print("Call stepDown motor function");
       stepDown();
@@ -59,7 +60,7 @@ void receiveEvent(int howMany) {
     Serial.print(c);           /* print the character */
 
     if(c == 's') {
-      // Serial.println("Event recieved: Step motor");
+      // Serial.println("Event recieved: Step motor"); // This is commented since the arduino couldn't react to how fast the pouring happened.
       // function = 1;
     } 
 
@@ -105,7 +106,6 @@ void stepUp() {
 }
 
 void stepDown() {
-  Serial.println("   -- Step down running! --   ");
   // Rotate downwards slowly
 	myStepper.setSpeed(3);
 	myStepper.step(-stepsPerRevolution/8);
@@ -113,11 +113,12 @@ void stepDown() {
 
 void dRead() {
   Serial.println("dRead called");
-  int dArray[5] = {0,0,0,0,0};
+  int dArray[5] = {0,0,0,0,0}; // Empty array for a while loop below, that ensures the avg. between 5 readings is correct.
+                               // This is implemented to avoid incorrect readings.
 
   while(goodRead == false) {
     for(int i = 0; i < 5; i++){
-      delay(60);
+      delay(60); // Delay between each reading / pulse.
 
       duration = sonar.ping();
       dArray[i] = (duration / 2) * 0.0343;
@@ -130,10 +131,10 @@ void dRead() {
     Serial.println(sum/5);
     Serial.println();
 
-    if((sum/5 < 11) && (sum/5 > 4)) { // 30 & 20 are the tolerance for cup distance
-      goodRead = true;
+    if((sum/5 < 11) && (sum/5 > 4)) { // 11 & 4 cm is the interval for the cup to be inserted
+      goodRead = true; // Exit while loop if avg. is between 11 & 4 cm.
 
-      request = 'y';
+      request = 'y'; // Send value 'y' to ESP32
       Serial.print("Good distance read");
       Serial.println();
 
@@ -145,7 +146,7 @@ void dRead() {
 }
 
 
-void dRead2() {
+void dRead2() { // Almost a copy of dRead1, except this reads once the distance is above something.
   Serial.println("dRead2 called");
   int dArray[5] = {0,0,0,0,0};
 

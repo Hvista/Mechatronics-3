@@ -1,23 +1,26 @@
+// Libraries
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <HTTPClient.h>
 #include <SPI.h>
 #include <Wire.h>
 
+
 // Function Pins //
 #define relay 14   // Relay pin
 #define sensor 27  // Flow Sensor pin
 
+
 // Function Variables //
-unsigned long currentMillis;
-unsigned long previousMillis;
-int flowInterval = 1000;
-float calibrationFactor = 4.5;
-volatile byte pulseCount;
+unsigned long currentMillis;    // Variable used to log current time
+unsigned long previousMillis;   // Variable used to save previous logged time
+int flowInterval = 1000;        // Interval used for the sensor
+float calibrationFactor = 4.5;  // Variable used for deviation in sensor readings
+volatile byte pulseCount;       // Variable for pulse readings in flow sensor
 byte pulse1Sec = 0;
-float flowRate;  // Flow rate chosen from the user interview
-unsigned int flowMilliLitres;
-unsigned long totalMilliLitres;
+int flowRate;                      // Flow rate chosen from the user interview
+unsigned int flowMilliLitres = 1;  // Flow rate logged from water flow sensor
+unsigned long totalMilliLitres;  // Total logged millillitres read from water flow sensor
 int totalKeg = 1;
 const int flowThreshold = 50;
 // int sliderVal;
@@ -32,18 +35,18 @@ unsigned int usedKeg;
 unsigned long fullKegSize = 50000;
 
 
-// // Hardcode values for testing
+// Hardcode values for testing
 int saldo = 300;
 int beerPrice = 75;
 int glassSize = 200;
 int sliderVal = 1;
 
 
-// All the booleans
-bool inProcess = false;
-bool distanceRead = false;
-bool halfFull = false;
-bool cupFull = false;
+// Boolean Variables
+bool inProcess = false;     // Check if beer pouring is in progress
+bool distanceRead = false;  //  Check if HC-SR04 Module is reading
+bool halfFull = false;      // Check if
+bool cupFull = false;       // Check if cup is full based on input cup size
 
 
 // WiFi Variables //
@@ -191,18 +194,19 @@ void setup() {
 
   attachInterrupt(digitalPinToInterrupt(sensor), pulseCounter, FALLING);
 
-  Wire.begin(21, 22);
+  Wire.begin(21, 22);  // Sets up connection from ESP32 to Arduino Unos through SDA (Serial Data) and SCL (Serial Clock) pins
 }
 
 
 void pouringFunctions() {
   Serial.println("Pouring process began");
   delay(200); // Several delays have been put in, since the Wire.write's don't always
-  distance1(); // go through if the slave arduino is currently executing a process
+              // go through if the slave arduino is currently executing a process
+  distance1();        // We first check if a cup is present in front of the HC-SR04 module, thereby it also being under the faucet
   delay(200);
-  relayFunc();
+  relayFunc();        // Thereafter, the relay function is called to control the pouring of the beverage
   delay(200);
-  distance2();
+  distance2();        // We then check if the cup is removed before pouring another beverage
   delay(400);
 }
 
@@ -210,18 +214,18 @@ void pouringFunctions() {
 void distance1() { // Prevents the valve opening before a cup has been inserted
   Wire.beginTransmission(8); /* begin with device address 8 */
   delay(1200);
-  Wire.write("d");  // Call dRead function from arduino with adress 8
-  Serial.println("Transmission sent regarding cup insert");
-  Wire.endTransmission();    /* stop transmitting */
+  Wire.write("d");            // Call dRead function from arduino with adress 8
+  Serial.print("Transmission sent");
+  Wire.endTransmission();  // stop transmitting
 
   while(distanceRead == false) {
-    Wire.requestFrom(8, 1); /* request & read data of size 13 from slave */
+    Wire.requestFrom(8, 1);  // request & read data of size 1 from worker
     while(Wire.available()){
-      char c = Wire.read();
+      char c = Wire.read();  // received data is stored in the variable "c"
 
       if(c == 'y') {
-        Wire.beginTransmission(9); /* begin with device address 8 */
-        Wire.write("d");  // Call dRead function from arduino with adress 8
+        Wire.beginTransmission(9); /* begin with device address 9 */
+        Wire.write("d");  // Tell LED arduino that distance read has been approved
         Serial.println("Approved cup insert sent to LED's");
         Wire.endTransmission();    /* stop transmitting */
 
@@ -247,8 +251,8 @@ void distance2() { // Prevents a new process to begin until cup has been removed
       char c = Wire.read();
 
       if(c == 'r') {
-        Wire.beginTransmission(9); /* begin with device address 8 */
-        Wire.write("c");  // Call dRead function from arduino with adress 8
+        Wire.beginTransmission(9); /* begin with device address 9 */
+        Wire.write("c");  // Tell LED arduino that cup has been removed
         Serial.println("Approved cup insert sent to LED's");
         Wire.endTransmission();    /* stop transmitting */
 
@@ -313,14 +317,15 @@ void flowSensor() {
 void relayFunc() {
   digitalWrite(relay, LOW); // Open valve and start pouring
 
-  while(cupFull == false) {
-    flowSensor();
+  while (cupFull == false) {  // While cup isn't full
+    flowSensor();             // Flow sensor function is called
 
-    if(totalMilliLitres >= glassSize - tol) {
-      totalMilliLitres = 0;
-      cupFull = true;
+    if (totalMilliLitres >= glassSize - tol) {  // If total read millilitres if greater than input glass size
+      totalMilliLitres = 0;                     // Reset total read millilitres
+      cupFull = true;                           // Register cup is now full
     }
 
+    // This below is commented since the arduino couldn't read the wire.write in time, so we hardcoded it on step motor arduino.
     // if((totalMilliLitres >= glassSize/6) && (halfFull == false)) {
     //   halfFull = true;
 
